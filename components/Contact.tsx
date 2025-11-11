@@ -10,10 +10,16 @@ const Contact: React.FC = () => {
     fullName: "",
     whatsapp: "",
     location: "",
-    animalType: "Cow", // default option
+    animalType: "Cow",
     order: "",
   });
   const [loading, setLoading] = useState(false);
+
+  // ✅ Validate Nigerian phone number
+  const isValidNigeriaNumber = (num: string) => {
+    const cleaned = num.replace(/\D/g, "");
+    return /^0\d{10}$/.test(cleaned);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,26 +29,39 @@ const Contact: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    const { fullName, whatsapp, location, animalType, order } = formData;
+
+    // Check all fields
+    if (!fullName || !whatsapp || !location || !animalType || !order) {
+      toast.error("Please fill out all fields!");
+      setLoading(false);
+      return;
+    }
+
+    // Validate WhatsApp number
+    if (!isValidNigeriaNumber(whatsapp)) {
+      toast.error("Enter a valid Nigerian phone number (11 digits starting with 0)");
+      setLoading(false);
+      return;
+    }
+
+    // Convert to international format
+    const whatsappIntl = whatsapp.replace(/^0/, "234");
+
     try {
-      const { fullName, whatsapp, location, animalType, order } = formData;
-
-      if (!fullName || !whatsapp || !location || !animalType || !order) {
-        toast.error("Please fill out all fields!");
-        setLoading(false);
-        return;
-      }
-
+      // Save to Firestore
       await addDoc(collection(db, "livestockLeads"), {
         fullName: fullName.trim(),
-        whatsapp: whatsapp.trim(),
+        whatsapp: whatsappIntl,
         location: location.trim(),
         animalType,
         order: order.trim(),
         createdAt: serverTimestamp(),
       });
 
-      toast.success("Submission successful! Opening WhatsApp…");
+      toast.success("Submission successful! Redirecting to WhatsApp...");
 
+      // Reset form
       setFormData({
         fullName: "",
         whatsapp: "",
@@ -51,11 +70,14 @@ const Contact: React.FC = () => {
         order: "",
       });
 
-      const message = encodeURIComponent(
-        `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
-      );
-      const whatsappNumber = "2348012345678"; // replace with your sales number
-      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+      // ✅ Delay before redirecting to WhatsApp
+      setTimeout(() => {
+        const message = encodeURIComponent(
+          `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
+        );
+        const salesNumber = "2348012345678"; // replace with your sales number
+        window.open(`https://wa.me/${salesNumber}?text=${message}`, "_blank");
+      }, 2500); // 2.5 seconds delay
     } catch (error) {
       console.error("Firestore error:", error);
       toast.error("An error occurred while submitting. Please try again.");
@@ -65,7 +87,7 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+    <div className="flex flex-col items-center justify-center px-4 py-16 text-center bg-gray-50">
       <h2 className="text-3xl font-bold mb-8 text-[#8CC63F]">Get in Touch with Us</h2>
 
       <form
@@ -85,7 +107,7 @@ const Contact: React.FC = () => {
         <input
           name="whatsapp"
           type="tel"
-          placeholder="WhatsApp Number"
+          placeholder="WhatsApp Number (e.g., 08012345678)"
           value={formData.whatsapp}
           onChange={handleChange}
           required
