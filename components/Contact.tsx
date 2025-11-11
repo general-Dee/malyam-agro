@@ -17,7 +17,7 @@ const Contact: React.FC = () => {
 
   // ✅ Validate Nigerian phone number
   const isValidNigeriaNumber = (num: string) => {
-    const cleaned = num.replace(/\D/g, "");
+    const cleaned = num.replace(/\D/g, ""); // remove non-numeric characters
     return /^0\d{10}$/.test(cleaned);
   };
 
@@ -45,8 +45,8 @@ const Contact: React.FC = () => {
       return;
     }
 
-    // Convert to international format
-    const whatsappIntl = whatsapp.replace(/^0/, "234");
+    // Convert user number to international format (for internal storage if needed)
+    const whatsappIntl = whatsapp.replace(/\D/g, "").replace(/^0/, "234");
 
     try {
       // Save to Firestore
@@ -70,12 +70,15 @@ const Contact: React.FC = () => {
         order: "",
       });
 
-      // ✅ Delay before redirecting to WhatsApp
+      // ✅ Delay before opening WhatsApp
       setTimeout(() => {
+        // Your sales number in proper WhatsApp international format
+        const salesNumber = "2348012345678";
+
         const message = encodeURIComponent(
           `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
         );
-        const salesNumber = "2348012345678"; // replace with your sales number
+
         window.open(`https://wa.me/${salesNumber}?text=${message}`, "_blank");
       }, 2500); // 2.5 seconds delay
     } catch (error) {
@@ -87,7 +90,7 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-16 text-center bg-gray-50">
+    <div className="flex flex-col items-center justify-center px-4 py-16 text-center bg-[rgb(36,36,36)]">
       <h2 className="text-3xl font-bold mb-8 text-[#8CC63F]">Get in Touch with Us</h2>
 
       <form
