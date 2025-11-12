@@ -17,11 +17,9 @@ function Hero({}: Props) {
         words: [
             "Malyam Agro — The Smartest Way to Buy Livestock This Festive Season", 
             "Get Healthy, Vet-Certified Livestock Delivered to You — Fast, Affordable & Hassle-Free", 
-            "From our farm in Kaduna straight to your city — guaranteed quality, fair pricing, and delivery in 3–5 days nationwide", 
-            // "Get Clean, Healthy, and Affordable Livestock Delivered Straight From the Farm — Without the Stress or Market Wahala!", 
+            "From our farm in Kaduna straight to your city — guaranteed quality, fair pricing, and delivery in 3–5 days nationwide",  
             "Finally — a reliable way to buy strong, well-fed livestock directly from trusted Nigerian farms at the best possible prices.", 
             "No middleman wahala.", 
-            // "No brokers. No hidden costs. Just healthy animals, nationwide delivery, and peace of mind.", 
             "Are you buying one or in bulk?",
             "Malyam Agro supplies strong, clean, and well-fed livestock at pocket-friendly prices",
             "delivered anywhere in Nigeria."

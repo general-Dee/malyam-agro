@@ -42,15 +42,16 @@ const HomePage: NextPage = () => {
         <Hero />
       </section>
 
+      {/* Trust */}
+      <section id="about" className="snap-center">
+        <About />
+      </section>
+      
       {/* Value stark */}
       <section id="value" className="snap-center">
         <Value />
       </section>
 
-      {/* Trust */}
-      <section id="about" className="snap-center">
-        <About />
-      </section>
 
       {/* testimonials */}
       <section id="experience" className="snap-center">
