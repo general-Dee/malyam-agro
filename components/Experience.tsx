@@ -1,9 +1,8 @@
-"use client";
-import React from "react";
-import { motion } from "framer-motion";
-import ExperienceCard from "./ExperienceCard";
+import React from "react"
+import { motion } from "framer-motion"
+import ExperienceCard from "./ExperienceCard"
 
-type Props = {};
+type Props = {}
 
 function Experience({}: Props) {
   return (
@@ -11,15 +10,15 @@ function Experience({}: Props) {
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       transition={{ duration: 1.5 }}
-      className="relative flex flex-col text-left md:flex-row max-w-full px-4 sm:px-8 lg:px-10 justify-evenly mx-auto items-center py-20 sm:py-24 overflow-hidden bg-black text-white"
+      className="min-h-screen flex relative overflow-hidden flex-col text-left max-w-full justify-evenly mx-auto items-center px-3 sm:px-6 md:px-10"
     >
-      {/* Section Heading */}
-      <h3 className="absolute top-10 sm:top-20 uppercase tracking-[10px] sm:tracking-[20px] text-xl sm:text-2xl text-gray-200">
+      {/* Section Title */}
+      <h3 className="absolute top-16 sm:top-20 uppercase tracking-[5px] sm:tracking-[10px] md:tracking-[20px] text-gray-500 text-base sm:text-lg md:text-2xl text-center w-full">
         Gains
       </h3>
 
-      {/* Scrollable Cards */}
-      <div className="w-full flex space-x-4 sm:space-x-6 overflow-x-auto snap-x snap-mandatory scrollbar-thin scrollbar-thumb-[#7FAB0A] scrollbar-track-gray-700/20 pt-28 sm:pt-40 pb-6 sm:pb-10 px-2 sm:px-0">
+      {/* Horizontal Scroll Cards */}
+      <div className="w-full flex space-x-4 sm:space-x-6 md:space-x-8 overflow-x-scroll snap-x snap-mandatory scrollbar-thin scrollbar-track-gray-400/20 scrollbar-thumb-[#7FAB0A] pt-28 sm:pt-32 pb-10">
         <ExperienceCard
           title="Healthy, Vet-Certified Livestock"
           imageUrl="./hero/cow03.jpg"
@@ -49,7 +48,7 @@ function Experience({}: Props) {
         />
       </div>
     </motion.div>
-  );
+  )
 }
 
-export default Experience;
+export default Experience
