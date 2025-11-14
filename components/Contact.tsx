@@ -13,15 +13,18 @@ const Contact: React.FC = () => {
     animalType: "Cow",
     order: "",
   });
+
   const [loading, setLoading] = useState(false);
 
-  // ✅ Validate Nigerian phone number
+  // Validate Nigerian phone number
   const isValidNigeriaNumber = (num: string) => {
-    const cleaned = num.replace(/\D/g, ""); // remove non-numeric characters
+    const cleaned = num.replace(/\D/g, "");
     return /^0\d{10}$/.test(cleaned);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -31,7 +34,7 @@ const Contact: React.FC = () => {
 
     const { fullName, whatsapp, location, animalType, order } = formData;
 
-    // Check all fields
+    // Validate required fields
     if (!fullName || !whatsapp || !location || !animalType || !order) {
       toast.error("Please fill out all fields!");
       setLoading(false);
@@ -45,7 +48,7 @@ const Contact: React.FC = () => {
       return;
     }
 
-    // Convert user number to international format (for internal storage if needed)
+    // Convert phone number to international format
     const whatsappIntl = whatsapp.replace(/\D/g, "").replace(/^0/, "234");
 
     try {
@@ -70,17 +73,26 @@ const Contact: React.FC = () => {
         order: "",
       });
 
-      // ✅ Delay before opening WhatsApp
+      // WhatsApp redirect logic
       setTimeout(() => {
-        // Your sales number in proper WhatsApp international format
-        const salesNumber = "2348012345678";
-
+        const salesNumber = "2348012345678"; // Your WhatsApp number
         const message = encodeURIComponent(
           `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
         );
 
-        window.open(`https://wa.me/${salesNumber}?text=${message}`, "_blank");
-      }, 2500); // 2.5 seconds delay
+        // Detect if user is on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+
+        if (isMobile) {
+          // Mobile → Open WhatsApp App directly
+          window.location.href = `whatsapp://send?phone=${salesNumber}&text=${message}`;
+        } else {
+          // Desktop → Open WhatsApp Web
+          window.open(`https://wa.me/${salesNumber}?text=${message}`, "_blank");
+        }
+      }, 2500);
     } catch (error) {
       console.error("Firestore error:", error);
       toast.error("An error occurred while submitting. Please try again.");
@@ -127,7 +139,6 @@ const Contact: React.FC = () => {
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-[#8CC63F]"
         />
 
-        {/* ✅ Animal Type Dropdown */}
         <select
           name="animalType"
           value={formData.animalType}
