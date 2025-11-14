@@ -75,7 +75,7 @@ const Contact: React.FC = () => {
 
       // WhatsApp redirect logic
       setTimeout(() => {
-        const salesNumber = "2348012345678"; // Your WhatsApp number
+        const salesNumber = "2349128264140"; // Your WhatsApp number
         const message = encodeURIComponent(
           `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
         );
