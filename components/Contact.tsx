@@ -5,6 +5,25 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// ---- NEW: Tracking function (client + server) ----
+async function trackLeadEvent(data: any, eventId: string) {
+  if (typeof window !== "undefined" && (window as any).fbq) {
+    (window as any).fbq("track", "Lead", { ...data, event_id: eventId });
+  }
+
+  // Server-side Conversions API call
+  await fetch("/api/events/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event_name: "Lead",
+      event_id: eventId,
+      event_data: data,
+    }),
+  }).catch(() => {});
+}
+// --------------------------------------------------
+
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
     fullName: "",
@@ -16,7 +35,6 @@ const Contact: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // Validate Nigerian phone number
   const isValidNigeriaNumber = (num: string) => {
     const cleaned = num.replace(/\D/g, "");
     return /^0\d{10}$/.test(cleaned);
@@ -34,25 +52,22 @@ const Contact: React.FC = () => {
 
     const { fullName, whatsapp, location, animalType, order } = formData;
 
-    // Validate required fields
     if (!fullName || !whatsapp || !location || !animalType || !order) {
       toast.error("Please fill out all fields!");
       setLoading(false);
       return;
     }
 
-    // Validate WhatsApp number
     if (!isValidNigeriaNumber(whatsapp)) {
       toast.error("Enter a valid Nigerian phone number (11 digits starting with 0)");
       setLoading(false);
       return;
     }
 
-    // Convert phone number to international format
     const whatsappIntl = whatsapp.replace(/\D/g, "").replace(/^0/, "234");
 
     try {
-      // Save to Firestore
+      // Save to Firestore (LEAD IS CREATED)
       await addDoc(collection(db, "livestockLeads"), {
         fullName: fullName.trim(),
         whatsapp: whatsappIntl,
@@ -62,9 +77,22 @@ const Contact: React.FC = () => {
         createdAt: serverTimestamp(),
       });
 
+      // ---------------- NEW: Trigger Pixel + CAPI Tracking ----------------
+      const eventId = crypto.randomUUID();
+      await trackLeadEvent(
+        {
+          fullName,
+          whatsapp: whatsappIntl,
+          location,
+          animalType,
+          order,
+        },
+        eventId
+      );
+      // ---------------------------------------------------------------------
+
       toast.success("Submission successful! Redirecting to WhatsApp...");
 
-      // Reset form
       setFormData({
         fullName: "",
         whatsapp: "",
@@ -73,23 +101,19 @@ const Contact: React.FC = () => {
         order: "",
       });
 
-      // WhatsApp redirect logic
       setTimeout(() => {
-        const salesNumber = "2349128264140"; // Your WhatsApp number
+        const salesNumber = "2349128264140";
         const message = encodeURIComponent(
           `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
         );
 
-        // Detect if user is on mobile
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
           navigator.userAgent
         );
 
         if (isMobile) {
-          // Mobile → Open WhatsApp App directly
           window.location.href = `whatsapp://send?phone=${salesNumber}&text=${message}`;
         } else {
-          // Desktop → Open WhatsApp Web
           window.open(`https://wa.me/${salesNumber}?text=${message}`, "_blank");
         }
       }, 2500);
