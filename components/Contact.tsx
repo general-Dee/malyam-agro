@@ -5,22 +5,30 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// ---- NEW: Tracking function (client + server) ----
+// ---- TRACK LEAD EVENT (Pixel + CAPI) ----
 async function trackLeadEvent(data: any, eventId: string) {
+  // Client-side Pixel Event
   if (typeof window !== "undefined" && (window as any).fbq) {
-    (window as any).fbq("track", "Lead", { ...data, event_id: eventId });
+    (window as any).fbq("track", "Lead", {
+      ...data,
+      event_id: eventId,
+    });
   }
 
-  // Server-side Conversions API call
-  await fetch("/api/events/track", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      event_name: "Lead",
-      event_id: eventId,
-      event_data: data,
-    }),
-  }).catch(() => {});
+  // Server-side CAPI Event
+  try {
+    await fetch("/api/events/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_name: "Lead",
+        event_id: eventId,
+        event_data: data,
+      }),
+    });
+  } catch (e) {
+    console.warn("CAPI tracking failed");
+  }
 }
 // --------------------------------------------------
 
@@ -52,6 +60,7 @@ const Contact: React.FC = () => {
 
     const { fullName, whatsapp, location, animalType, order } = formData;
 
+    // Basic validation
     if (!fullName || !whatsapp || !location || !animalType || !order) {
       toast.error("Please fill out all fields!");
       setLoading(false);
@@ -64,10 +73,11 @@ const Contact: React.FC = () => {
       return;
     }
 
+    // Convert 080 → 23480 format
     const whatsappIntl = whatsapp.replace(/\D/g, "").replace(/^0/, "234");
 
     try {
-      // Save to Firestore (LEAD IS CREATED)
+      // Save Lead to Firestore
       await addDoc(collection(db, "livestockLeads"), {
         fullName: fullName.trim(),
         whatsapp: whatsappIntl,
@@ -77,8 +87,8 @@ const Contact: React.FC = () => {
         createdAt: serverTimestamp(),
       });
 
-      // ---------------- NEW: Trigger Pixel + CAPI Tracking ----------------
-      const eventId = crypto.randomUUID();
+      // ---- Trigger Lead Tracking ----
+      const eventId = crypto.randomUUID(); // unique for deduplication
       await trackLeadEvent(
         {
           fullName,
@@ -89,10 +99,11 @@ const Contact: React.FC = () => {
         },
         eventId
       );
-      // ---------------------------------------------------------------------
+      // ------------------------------
 
       toast.success("Submission successful! Redirecting to WhatsApp...");
 
+      // Reset form
       setFormData({
         fullName: "",
         whatsapp: "",
@@ -101,13 +112,14 @@ const Contact: React.FC = () => {
         order: "",
       });
 
+      // Redirect to WhatsApp after brief success toast
       setTimeout(() => {
         const salesNumber = "2349128264140";
         const message = encodeURIComponent(
           `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
         );
 
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
           navigator.userAgent
         );
 
@@ -140,7 +152,7 @@ const Contact: React.FC = () => {
           value={formData.fullName}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-[#8CC63F]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
         />
 
         <input
@@ -150,7 +162,7 @@ const Contact: React.FC = () => {
           value={formData.whatsapp}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-[#8CC63F]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
         />
 
         <input
@@ -160,7 +172,7 @@ const Contact: React.FC = () => {
           value={formData.location}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-[#8CC63F]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
         />
 
         <select
@@ -168,7 +180,7 @@ const Contact: React.FC = () => {
           value={formData.animalType}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-[#8CC63F]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
         >
           <option value="Cow">Cow</option>
           <option value="Goat">Goat</option>
@@ -182,7 +194,7 @@ const Contact: React.FC = () => {
           value={formData.order}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-[#8CC63F]"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
         />
 
         <button

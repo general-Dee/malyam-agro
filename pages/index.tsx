@@ -16,6 +16,14 @@ import Link from 'next/link';
 const HomePage: NextPage = () => {
   const router = useRouter();
   const [isAdminMode, setIsAdminMode] = useState(false);
+   useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "ViewContent", {
+        content_name: "Livestock Landing Page",
+        content_category: "LandingPage",
+      });
+    }
+  }, []);
 
   useEffect(() => {
     // Check query param for admin
