@@ -45,6 +45,11 @@ const HomePage: NextPage = () => {
 
       <Header />
 
+      {/* Contact */}
+      <section id='contact' className='snap-start'>
+        <Contact />
+      </section>
+
       {/* hero */}
       <section id="hero" className="snap-start">
         <Hero />
@@ -71,10 +76,7 @@ const HomePage: NextPage = () => {
         <Projects />
       </section>
 
-      {/* Contact */}
-      <section id='contact' className='snap-start'>
-        <Contact />
-      </section>
+      
 
       <Link href="#hero">
         <footer className='sticky bottom-5 w-full cursor-pointer'>
