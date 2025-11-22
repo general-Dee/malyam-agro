@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -7,16 +8,16 @@ import "react-toastify/dist/ReactToastify.css";
 
 // ---- TRACK LEAD EVENT (Pixel + CAPI) ----
 async function trackLeadEvent(data: any, eventId: string) {
-  // Client-side Pixel Event
-  if (typeof window !== "undefined" && (window as any).fbq) {
-    (window as any).fbq("track", "Lead", {
-      ...data,
-      event_id: eventId,
-    });
-  }
-
-  // Server-side CAPI Event
   try {
+    // Client-side Pixel
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "Lead", {
+        ...data,
+        event_id: eventId,
+      });
+    }
+
+    // Server-side CAPI
     await fetch("/api/events/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,10 +27,33 @@ async function trackLeadEvent(data: any, eventId: string) {
         event_data: data,
       }),
     });
-  } catch (e) {
-    console.warn("CAPI tracking failed");
+  } catch (error) {
+    console.warn("CAPI tracking failed:", error);
   }
 }
+
+// ---- WHATSAPP REDIRECT ----
+function redirectToWhatsApp(fullName: string, animalType: string, order: string) {
+  const salesNumber = "2349128264140";
+
+  const message = encodeURIComponent(
+    `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
+  );
+
+  const waMobile = `whatsapp://send?phone=${salesNumber}&text=${message}`;
+  const waWeb = `https://wa.me/${salesNumber}?text=${message}`;
+
+  const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  if (isMobile) {
+    window.location.href = waMobile;
+  } else {
+    window.open(waWeb, "_blank");
+  }
+}
+
 // --------------------------------------------------
 
 const Contact: React.FC = () => {
@@ -45,7 +69,7 @@ const Contact: React.FC = () => {
 
   const isValidNigeriaNumber = (num: string) => {
     const cleaned = num.replace(/\D/g, "");
-    return /^0\d{10}$/.test(cleaned);
+    return /^0\d{10}$/.test(cleaned); // must start with 0 + 10 digits
   };
 
   const handleChange = (
@@ -60,7 +84,7 @@ const Contact: React.FC = () => {
 
     const { fullName, whatsapp, location, animalType, order } = formData;
 
-    // Basic validation
+    // ---- Validation ----
     if (!fullName || !whatsapp || !location || !animalType || !order) {
       toast.error("Please fill out all fields!");
       setLoading(false);
@@ -68,16 +92,15 @@ const Contact: React.FC = () => {
     }
 
     if (!isValidNigeriaNumber(whatsapp)) {
-      toast.error("Enter a valid Nigerian phone number (11 digits starting with 0)");
+      toast.error("Enter a valid Nigerian number (11 digits starting with 0)");
       setLoading(false);
       return;
     }
 
-    // Convert 080 → 23480 format
     const whatsappIntl = whatsapp.replace(/\D/g, "").replace(/^0/, "234");
 
+    // ---- Save lead to Firestore ----
     try {
-      // Save Lead to Firestore
       await addDoc(collection(db, "livestockLeads"), {
         fullName: fullName.trim(),
         whatsapp: whatsappIntl,
@@ -87,9 +110,11 @@ const Contact: React.FC = () => {
         createdAt: serverTimestamp(),
       });
 
-      // ---- Trigger Lead Tracking ----
-      const eventId = crypto.randomUUID(); // unique for deduplication
-      await trackLeadEvent(
+      toast.success("Submission successful! Redirecting to WhatsApp...");
+
+      // ---- Trigger Tracking (non-blocking) ----
+      const eventId = self.crypto?.randomUUID?.() || Math.random().toString(36);
+      trackLeadEvent(
         {
           fullName,
           whatsapp: whatsappIntl,
@@ -99,42 +124,28 @@ const Contact: React.FC = () => {
         },
         eventId
       );
-      // ------------------------------
-
-      toast.success("Submission successful! Redirecting to WhatsApp...");
-
-      // Reset form
-      setFormData({
-        fullName: "",
-        whatsapp: "",
-        location: "",
-        animalType: "Cow",
-        order: "",
-      });
-
-      // Redirect to WhatsApp after brief success toast
-      setTimeout(() => {
-        const salesNumber = "2349128264140";
-        const message = encodeURIComponent(
-          `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
-        );
-
-        const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        );
-
-        if (isMobile) {
-          window.location.href = `whatsapp://send?phone=${salesNumber}&text=${message}`;
-        } else {
-          window.open(`https://wa.me/${salesNumber}?text=${message}`, "_blank");
-        }
-      }, 2500);
     } catch (error) {
       console.error("Firestore error:", error);
-      toast.error("An error occurred while submitting. Please try again.");
-    } finally {
+      toast.error("Error submitting your details. Please try again.");
       setLoading(false);
+      return; // ⛔ Do not redirect if Firestore failed
     }
+
+    // ---- Clear form ----
+    setFormData({
+      fullName: "",
+      whatsapp: "",
+      location: "",
+      animalType: "Cow",
+      order: "",
+    });
+
+    // ---- Redirect after success ----
+    setTimeout(() => {
+      redirectToWhatsApp(fullName, animalType, order);
+    }, 1000);
+
+    setLoading(false);
   };
 
   return (
