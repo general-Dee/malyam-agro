@@ -1,219 +1,104 @@
 "use client";
-
 import React, { useState } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// ---- TRACK LEAD EVENT (Pixel + CAPI) ----
-async function trackLeadEvent(data: any, eventId: string) {
-  try {
-    // Client-side Pixel
-    if (typeof window !== "undefined" && (window as any).fbq) {
-      (window as any).fbq("track", "Lead", {
-        ...data,
-        event_id: eventId,
-      });
-    }
-
-    // Server-side CAPI
-    await fetch("/api/events/track", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_name: "Lead",
-        event_id: eventId,
-        event_data: data,
-      }),
-    });
-  } catch (error) {
-    console.warn("CAPI tracking failed:", error);
-  }
-}
-
-// ---- WHATSAPP REDIRECT ----
-function redirectToWhatsApp(fullName: string, animalType: string, order: string) {
-  const salesNumber = "2349128264140";
-
-  const message = encodeURIComponent(
-    `Hello, my name is ${fullName}. I’m interested in ${animalType} (${order} units).`
-  );
-
-  const waMobile = `whatsapp://send?phone=${salesNumber}&text=${message}`;
-  const waWeb = `https://wa.me/${salesNumber}?text=${message}`;
-
-  const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-
-  if (isMobile) {
-    window.location.href = waMobile;
-  } else {
-    window.open(waWeb, "_blank");
-  }
-}
-
-// --------------------------------------------------
-
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     whatsapp: "",
-    location: "",
-    animalType: "Cow",
-    order: "",
   });
 
   const [loading, setLoading] = useState(false);
 
-  const isValidNigeriaNumber = (num: string) => {
-    const cleaned = num.replace(/\D/g, "");
-    return /^0\d{10}$/.test(cleaned); // must start with 0 + 10 digits
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const isMobile = () => {
+    if (typeof window === "undefined") return false;
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  };
+
+  const redirectToWhatsApp = () => {
+    const phoneNumber = "2349128264140"; // <- replace with your business WhatsApp number
+
+    const message = `Hello, my name is ${formData.fullName}. I just filled the form.`;
+
+    if (isMobile()) {
+      // Mobile App
+      window.location.href = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(
+        message
+      )}`;
+    } else {
+      // Desktop / Laptop
+      window.location.href = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(
+        message
+      )}`;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.fullName || !formData.whatsapp) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
     setLoading(true);
 
-    const { fullName, whatsapp, location, animalType, order } = formData;
-
-    // ---- Validation ----
-    if (!fullName || !whatsapp || !location || !animalType || !order) {
-      toast.error("Please fill out all fields!");
-      setLoading(false);
-      return;
-    }
-
-    if (!isValidNigeriaNumber(whatsapp)) {
-      toast.error("Enter a valid Nigerian number (11 digits starting with 0)");
-      setLoading(false);
-      return;
-    }
-
-    const whatsappIntl = whatsapp.replace(/\D/g, "").replace(/^0/, "234");
-
-    // ---- Save lead to Firestore ----
     try {
-      await addDoc(collection(db, "livestockLeads"), {
-        fullName: fullName.trim(),
-        whatsapp: whatsappIntl,
-        location: location.trim(),
-        animalType,
-        order: order.trim(),
-        createdAt: serverTimestamp(),
+      await addDoc(collection(db, "leads"), {
+        fullName: formData.fullName,
+        whatsapp: formData.whatsapp,
+        timestamp: serverTimestamp(),
       });
 
-      toast.success("Submission successful! Redirecting to WhatsApp...");
+      toast.success("Submitted successfully!");
 
-      // ---- Trigger Tracking (non-blocking) ----
-      const eventId = self.crypto?.randomUUID?.() || Math.random().toString(36);
-      trackLeadEvent(
-        {
-          fullName,
-          whatsapp: whatsappIntl,
-          location,
-          animalType,
-          order,
-        },
-        eventId
-      );
+      // redirect after submitting
+      setTimeout(() => {
+        redirectToWhatsApp();
+      }, 800);
     } catch (error) {
-      console.error("Firestore error:", error);
-      toast.error("Error submitting your details. Please try again.");
-      setLoading(false);
-      return; // ⛔ Do not redirect if Firestore failed
+      console.error(error);
+      toast.error("Something went wrong. Try again.");
     }
-
-    // ---- Clear form ----
-    setFormData({
-      fullName: "",
-      whatsapp: "",
-      location: "",
-      animalType: "Cow",
-      order: "",
-    });
-
-    // ---- Redirect after success ----
-    setTimeout(() => {
-      redirectToWhatsApp(fullName, animalType, order);
-    }, 1000);
 
     setLoading(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-16 text-center bg-[rgb(36,36,36)]">
-      <h2 className="text-3xl font-bold mb-8 text-[#8CC63F]">Get in Touch with Us</h2>
+    <div className="w-full max-w-md mx-auto p-4">
+      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
 
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 space-y-4"
-      >
         <input
-          name="fullName"
           type="text"
-          placeholder="Full Name"
+          name="fullName"
+          placeholder="Enter your full name"
           value={formData.fullName}
           onChange={handleChange}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
+          className="border p-3 rounded"
         />
 
         <input
+          type="text"
           name="whatsapp"
-          type="tel"
-          placeholder="WhatsApp Number (e.g., 08012345678)"
+          placeholder="Enter your WhatsApp number"
           value={formData.whatsapp}
           onChange={handleChange}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
-        />
-
-        <input
-          name="location"
-          type="text"
-          placeholder="Location"
-          value={formData.location}
-          onChange={handleChange}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
-        />
-
-        <select
-          name="animalType"
-          value={formData.animalType}
-          onChange={handleChange}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
-        >
-          <option value="Cow">Cow</option>
-          <option value="Goat">Goat</option>
-          <option value="Ram">Ram</option>
-        </select>
-
-        <input
-          name="order"
-          type="text"
-          placeholder="Order Quantity"
-          value={formData.order}
-          onChange={handleChange}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#8CC63F]"
+          className="border p-3 rounded"
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#8CC63F] text-white font-semibold py-2 rounded-lg hover:bg-[#7AB034] transition-colors"
+          className="bg-green-600 text-white p-3 rounded"
         >
-          {loading ? "Submitting..." : "Submit"}
+          {loading ? "Submitting..." : "Submit & Chat on WhatsApp"}
         </button>
       </form>
     </div>
