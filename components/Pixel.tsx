@@ -4,46 +4,30 @@ import { useEffect } from "react";
 
 declare global {
   interface Window {
-    fbq?: FbqFunction;
+    fbq?: (...args: any[]) => void;
   }
-}
-
-interface FbqFunction {
-  (...args: any[]): void;
-  loaded?: boolean;
-  version?: string;
-  queue?: any[];
 }
 
 const Pixel: React.FC = () => {
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Already initialized?
-    if (window.fbq?.loaded) return;
-
-    const fbq: FbqFunction = function (...args: any[]) {
-      (fbq.queue = fbq.queue || []).push(args);
-    };
-
-    fbq.loaded = true;
-    fbq.version = "2.0";
-    fbq.queue = [];
-
-    // Assign to window
-    window.fbq = fbq;
-
-    // Inject Meta Pixel script
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = "https://connect.facebook.net/en_US/fbevents.js";
-    document.head.appendChild(script);
-
-    // Initialize your Pixel ID
-    if (process.env.NEXT_PUBLIC_PIXEL_ID) {
-      window.fbq("init", process.env.NEXT_PUBLIC_PIXEL_ID);
-      window.fbq("track", "PageView");
+    if (!window.fbq) {
+      // Initialize Facebook Pixel
+      const script = document.createElement("script");
+      script.innerHTML = `
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod ?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '${process.env.NEXT_PUBLIC_FB_PIXEL_ID}');
+      `;
+      document.head.appendChild(script);
     }
+
+    window.fbq?.("track", "PageView");
   }, []);
 
   return null;

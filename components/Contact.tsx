@@ -6,20 +6,19 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "2349128264140";
-
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     whatsapp: "",
     location: "",
-    animalType: "",
-    quantity: "",
+    animal: "cow",
+    quantity: 1,
   });
-
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -29,56 +28,34 @@ const Contact: React.FC = () => {
   };
 
   const redirectToWhatsApp = () => {
-    const { fullName, whatsapp, location, animalType, quantity } = formData;
-    const message = `Hello, my name is ${fullName}. I want to order ${quantity} ${animalType}(s) from ${location}. My WhatsApp number is ${whatsapp}.`;
+    const phoneNumber = "2349128264140"; // business number
+    const message = `Hello, my name is ${formData.fullName}. I want to order ${formData.quantity} ${formData.animal}(s).`;
     const url = isMobile()
-      ? `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`
-      : `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
+      ? `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
+      : `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
     window.location.href = url;
-  };
-
-  const trackLead = async () => {
-    try {
-      await fetch("/api/events/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventName: "Lead",
-          eventData: { ...formData },
-        }),
-      });
-    } catch (error) {
-      console.error("Failed to track lead:", error);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { fullName, whatsapp, location, animalType, quantity } = formData;
-
-    if (!fullName || !whatsapp || !location || !animalType || !quantity) {
+    if (!formData.fullName || !formData.whatsapp || !formData.location) {
       toast.error("Please fill all fields");
       return;
     }
 
     setLoading(true);
-
     try {
       await addDoc(collection(db, "leads"), {
         ...formData,
         timestamp: serverTimestamp(),
       });
-
-      await trackLead();
-
       toast.success("Submitted successfully!");
-      setTimeout(() => redirectToWhatsApp(), 800);
-    } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong. Try again.");
-    } finally {
-      setLoading(false);
+      setTimeout(redirectToWhatsApp, 800);
+    } catch (err) {
+      console.error(err);
+      toast.error("Submission failed. Try again.");
     }
+    setLoading(false);
   };
 
   return (
@@ -109,24 +86,22 @@ const Contact: React.FC = () => {
           className="border p-3 rounded"
         />
         <select
-          name="animalType"
-          value={formData.animalType}
+          name="animal"
+          value={formData.animal}
           onChange={handleChange}
           className="border p-3 rounded"
         >
-          <option value="">Select Animal</option>
-          <option value="Cow">Cow</option>
-          <option value="Goat">Goat</option>
-          <option value="Ram">Ram</option>
+          <option value="cow">Cow</option>
+          <option value="goat">Goat</option>
+          <option value="ram">Ram</option>
         </select>
         <input
           type="number"
           name="quantity"
-          placeholder="Order Quantity"
+          min={1}
           value={formData.quantity}
           onChange={handleChange}
           className="border p-3 rounded"
-          min={1}
         />
         <button
           type="submit"
