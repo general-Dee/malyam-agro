@@ -18,7 +18,6 @@ const HomePage: NextPage = () => {
   const router = useRouter();
   const [isAdminMode, setIsAdminMode] = useState(false);
 
-  // Track page view via Meta Pixel
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "ViewContent", {
@@ -28,16 +27,13 @@ const HomePage: NextPage = () => {
     }
   }, []);
 
-  // Check query param for admin
   useEffect(() => {
     if (router.query.admin === "true") {
       setIsAdminMode(true);
     }
   }, [router.query]);
 
-  if (isAdminMode) {
-    return <AdminDashboard />;
-  }
+  if (isAdminMode) return <AdminDashboard />;
 
   return (
     <div className="bg-[rgb(36,36,36)] text-[#8CC63F] h-screen snap-y snap-mandatory overflow-y-scroll overflow-x-hidden z-0 scrollbar scrollbar-track-gray-400/20 scrollbar-thumb-[#7FAB0A]">
@@ -48,38 +44,30 @@ const HomePage: NextPage = () => {
 
       <Header />
 
-      
-      {/* Hero Section */}
       <section id="hero" className="snap-start">
         <Hero />
       </section>
 
-      {/* About / Trust */}
       <section id="about" className="snap-center">
         <About />
       </section>
 
-      {/* Value Section */}
       <section id="value" className="snap-center">
         <Value />
       </section>
 
-      {/* Experience / Testimonials */}
       <section id="experience" className="snap-center">
         <Experience />
       </section>
 
-      {/* Projects Section */}
       <section id="projects" className="snap-start">
         <Projects />
       </section>
 
-      {/* Contact Section */}
       <section id="contact" className="snap-start">
         <Contact />
       </section>
 
-      {/* Footer with logo scroll-to-top */}
       <Link href="#hero">
         <footer className="sticky bottom-5 w-full cursor-pointer">
           <div className="flex items-center justify-center">

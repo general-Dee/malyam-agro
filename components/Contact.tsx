@@ -6,7 +6,6 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// WhatsApp number from env
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "2349128264140";
 
 const Contact: React.FC = () => {
@@ -20,18 +19,15 @@ const Contact: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Detect mobile device
   const isMobile = () => {
     if (typeof window === "undefined") return false;
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   };
 
-  // Redirect to WhatsApp
   const redirectToWhatsApp = () => {
     const { fullName, whatsapp, location, animalType, quantity } = formData;
     const message = `Hello, my name is ${fullName}. I want to order ${quantity} ${animalType}(s) from ${location}. My WhatsApp number is ${whatsapp}.`;
@@ -41,7 +37,6 @@ const Contact: React.FC = () => {
     window.location.href = url;
   };
 
-  // Track lead via API route
   const trackLead = async () => {
     try {
       await fetch("/api/events/track", {
@@ -49,14 +44,7 @@ const Contact: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventName: "Lead",
-          eventData: {
-            page: "LandingPage",
-            fullName: formData.fullName,
-            whatsapp: formData.whatsapp,
-            location: formData.location,
-            animalType: formData.animalType,
-            quantity: formData.quantity,
-          },
+          eventData: { ...formData },
         }),
       });
     } catch (error) {
@@ -64,7 +52,6 @@ const Contact: React.FC = () => {
     }
   };
 
-  // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { fullName, whatsapp, location, animalType, quantity } = formData;
@@ -77,21 +64,15 @@ const Contact: React.FC = () => {
     setLoading(true);
 
     try {
-      // Save to Firestore
       await addDoc(collection(db, "leads"), {
         ...formData,
         timestamp: serverTimestamp(),
       });
 
-      // Track via API route
       await trackLead();
 
       toast.success("Submitted successfully!");
-
-      // Redirect to WhatsApp
-      setTimeout(() => {
-        redirectToWhatsApp();
-      }, 800);
+      setTimeout(() => redirectToWhatsApp(), 800);
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong. Try again.");
@@ -111,7 +92,6 @@ const Contact: React.FC = () => {
           onChange={handleChange}
           className="border p-3 rounded"
         />
-
         <input
           type="text"
           name="whatsapp"
@@ -120,7 +100,6 @@ const Contact: React.FC = () => {
           onChange={handleChange}
           className="border p-3 rounded"
         />
-
         <input
           type="text"
           name="location"
@@ -129,7 +108,6 @@ const Contact: React.FC = () => {
           onChange={handleChange}
           className="border p-3 rounded"
         />
-
         <select
           name="animalType"
           value={formData.animalType}
@@ -141,7 +119,6 @@ const Contact: React.FC = () => {
           <option value="Goat">Goat</option>
           <option value="Ram">Ram</option>
         </select>
-
         <input
           type="number"
           name="quantity"
@@ -151,7 +128,6 @@ const Contact: React.FC = () => {
           className="border p-3 rounded"
           min={1}
         />
-
         <button
           type="submit"
           disabled={loading}
