@@ -1,19 +1,25 @@
 "use client";
+
 import React, { useState } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Access WhatsApp number from environment variable
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "2349128264140";
+
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     whatsapp: "",
+    location: "",
+    cowType: "",
+    quantity: "",
   });
-
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -23,27 +29,20 @@ const Contact: React.FC = () => {
   };
 
   const redirectToWhatsApp = () => {
-    const phoneNumber = "2349128264140"; // <- replace with your business WhatsApp number
+    const message = `Hello, my name is ${formData.fullName}. I want to order ${formData.quantity} ${formData.cowType}(s) from ${formData.location}. My WhatsApp number is ${formData.whatsapp}.`;
 
-    const message = `Hello, my name is ${formData.fullName}. I just filled the form.`;
+    const url = isMobile()
+      ? `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`
+      : `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
 
-    if (isMobile()) {
-      // Mobile App
-      window.location.href = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(
-        message
-      )}`;
-    } else {
-      // Desktop / Laptop
-      window.location.href = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(
-        message
-      )}`;
-    }
+    window.location.href = url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.fullName || !formData.whatsapp) {
+    const { fullName, whatsapp, location, cowType, quantity } = formData;
+    if (!fullName || !whatsapp || !location || !cowType || !quantity) {
       toast.error("Please fill all fields");
       return;
     }
@@ -51,34 +50,40 @@ const Contact: React.FC = () => {
     setLoading(true);
 
     try {
+      // Save lead to Firestore
       await addDoc(collection(db, "leads"), {
-        fullName: formData.fullName,
-        whatsapp: formData.whatsapp,
+        ...formData,
         timestamp: serverTimestamp(),
       });
 
+      // Fire Meta Pixel Lead event
+      if (typeof window !== "undefined" && window.fbq) {
+        window.fbq("track", "Lead", {
+          content_name: "Livestock Landing Page",
+        });
+      }
+
       toast.success("Submitted successfully!");
 
-      // redirect after submitting
+      // Redirect to WhatsApp after short delay
       setTimeout(() => {
         redirectToWhatsApp();
       }, 800);
     } catch (error) {
       console.error(error);
       toast.error("Something went wrong. Try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <div className="w-full max-w-md mx-auto p-4">
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-
         <input
           type="text"
           name="fullName"
-          placeholder="Enter your full name"
+          placeholder="Full Name"
           value={formData.fullName}
           onChange={handleChange}
           className="border p-3 rounded"
@@ -87,10 +92,41 @@ const Contact: React.FC = () => {
         <input
           type="text"
           name="whatsapp"
-          placeholder="Enter your WhatsApp number"
+          placeholder="WhatsApp Number (e.g., 08012345678)"
           value={formData.whatsapp}
           onChange={handleChange}
           className="border p-3 rounded"
+        />
+
+        <input
+          type="text"
+          name="location"
+          placeholder="Location"
+          value={formData.location}
+          onChange={handleChange}
+          className="border p-3 rounded"
+        />
+
+        <select
+          name="cowType"
+          value={formData.cowType}
+          onChange={handleChange}
+          className="border p-3 rounded"
+        >
+          <option value="">Select Cow Type</option>
+          <option value="Local">Local</option>
+          <option value="Exotic">Exotic</option>
+          <option value="Crossbreed">Crossbreed</option>
+        </select>
+
+        <input
+          type="number"
+          name="quantity"
+          placeholder="Order Quantity"
+          value={formData.quantity}
+          onChange={handleChange}
+          className="border p-3 rounded"
+          min={1}
         />
 
         <button
