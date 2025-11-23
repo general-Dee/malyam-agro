@@ -2,7 +2,6 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Link from "next/link";
 
 import Header from "../components/Header";
 import Hero from "../components/Hero";
@@ -12,13 +11,24 @@ import Experience from "../components/Experience";
 import Projects from "../components/Projects";
 import Contact from "../components/Contact";
 import AdminDashboard from "../components/AdminDashboard";
+import Link from "next/link";
 import Pixel from "../components/Pixel";
 
 const HomePage: NextPage = () => {
   const router = useRouter();
   const [isAdminMode, setIsAdminMode] = useState(false);
 
-  // Enable Admin mode if query param is present
+  // Track page view via Meta Pixel
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "ViewContent", {
+        content_name: "Livestock Landing Page",
+        content_category: "LandingPage",
+      });
+    }
+  }, []);
+
+  // Check query param for admin
   useEffect(() => {
     if (router.query.admin === "true") {
       setIsAdminMode(true);
@@ -31,27 +41,20 @@ const HomePage: NextPage = () => {
 
   return (
     <div className="bg-[rgb(36,36,36)] text-[#8CC63F] h-screen snap-y snap-mandatory overflow-y-scroll overflow-x-hidden z-0 scrollbar scrollbar-track-gray-400/20 scrollbar-thumb-[#7FAB0A]">
+      <Pixel />
       <Head>
         <title>Malyam Agro</title>
       </Head>
 
-      {/* Pixel fires PageView automatically */}
-      <Pixel />
-
-      {/* Header */}
       <Header />
 
-      {/* Contact Section */}
-      <section id="contact" className="snap-start">
-        <Contact />
-      </section>
-
+      
       {/* Hero Section */}
       <section id="hero" className="snap-start">
         <Hero />
       </section>
 
-      {/* About / Trust Section */}
+      {/* About / Trust */}
       <section id="about" className="snap-center">
         <About />
       </section>
@@ -71,7 +74,12 @@ const HomePage: NextPage = () => {
         <Projects />
       </section>
 
-      {/* Footer scroll-to-top */}
+      {/* Contact Section */}
+      <section id="contact" className="snap-start">
+        <Contact />
+      </section>
+
+      {/* Footer with logo scroll-to-top */}
       <Link href="#hero">
         <footer className="sticky bottom-5 w-full cursor-pointer">
           <div className="flex items-center justify-center">

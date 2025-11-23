@@ -6,7 +6,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Access WhatsApp number from environment variable
+// WhatsApp number from env
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "2349128264140";
 
 const Contact: React.FC = () => {
@@ -14,35 +14,62 @@ const Contact: React.FC = () => {
     fullName: "",
     whatsapp: "",
     location: "",
-    cowType: "",
+    animalType: "",
     quantity: "",
   });
+
   const [loading, setLoading] = useState(false);
 
+  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Detect mobile device
   const isMobile = () => {
     if (typeof window === "undefined") return false;
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   };
 
+  // Redirect to WhatsApp
   const redirectToWhatsApp = () => {
-    const message = `Hello, my name is ${formData.fullName}. I want to order ${formData.quantity} ${formData.cowType}(s) from ${formData.location}. My WhatsApp number is ${formData.whatsapp}.`;
-
+    const { fullName, whatsapp, location, animalType, quantity } = formData;
+    const message = `Hello, my name is ${fullName}. I want to order ${quantity} ${animalType}(s) from ${location}. My WhatsApp number is ${whatsapp}.`;
     const url = isMobile()
       ? `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`
       : `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
-
     window.location.href = url;
   };
 
+  // Track lead via API route
+  const trackLead = async () => {
+    try {
+      await fetch("/api/events/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventName: "Lead",
+          eventData: {
+            page: "LandingPage",
+            fullName: formData.fullName,
+            whatsapp: formData.whatsapp,
+            location: formData.location,
+            animalType: formData.animalType,
+            quantity: formData.quantity,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to track lead:", error);
+    }
+  };
+
+  // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { fullName, whatsapp, location, animalType, quantity } = formData;
 
-    const { fullName, whatsapp, location, cowType, quantity } = formData;
-    if (!fullName || !whatsapp || !location || !cowType || !quantity) {
+    if (!fullName || !whatsapp || !location || !animalType || !quantity) {
       toast.error("Please fill all fields");
       return;
     }
@@ -50,22 +77,18 @@ const Contact: React.FC = () => {
     setLoading(true);
 
     try {
-      // Save lead to Firestore
+      // Save to Firestore
       await addDoc(collection(db, "leads"), {
         ...formData,
         timestamp: serverTimestamp(),
       });
 
-      // Fire Meta Pixel Lead event
-      if (typeof window !== "undefined" && window.fbq) {
-        window.fbq("track", "Lead", {
-          content_name: "Livestock Landing Page",
-        });
-      }
+      // Track via API route
+      await trackLead();
 
       toast.success("Submitted successfully!");
 
-      // Redirect to WhatsApp after short delay
+      // Redirect to WhatsApp
       setTimeout(() => {
         redirectToWhatsApp();
       }, 800);
@@ -108,15 +131,15 @@ const Contact: React.FC = () => {
         />
 
         <select
-          name="cowType"
-          value={formData.cowType}
+          name="animalType"
+          value={formData.animalType}
           onChange={handleChange}
           className="border p-3 rounded"
         >
-          <option value="">Select Cow Type</option>
-          <option value="Local">Local</option>
-          <option value="Exotic">Exotic</option>
-          <option value="Crossbreed">Crossbreed</option>
+          <option value="">Select Animal</option>
+          <option value="Cow">Cow</option>
+          <option value="Goat">Goat</option>
+          <option value="Ram">Ram</option>
         </select>
 
         <input
