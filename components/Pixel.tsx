@@ -19,10 +19,9 @@ const Pixel: React.FC = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Avoid double initialization
+    // Already initialized?
     if (window.fbq?.loaded) return;
 
-    // Initialize fbq
     const fbq: FbqFunction = function (...args: any[]) {
       (fbq.queue = fbq.queue || []).push(args);
     };
@@ -34,15 +33,17 @@ const Pixel: React.FC = () => {
     // Assign to window
     window.fbq = fbq;
 
-    // Inject the Meta Pixel script
+    // Inject Meta Pixel script
     const script = document.createElement("script");
     script.async = true;
     script.src = "https://connect.facebook.net/en_US/fbevents.js";
     document.head.appendChild(script);
 
-    // Initialize Pixel with your Pixel ID from env
-    window.fbq("init", process.env.NEXT_PUBLIC_PIXEL_ID);
-    window.fbq("track", "PageView");
+    // Initialize your Pixel ID
+    if (process.env.NEXT_PUBLIC_PIXEL_ID) {
+      window.fbq("init", process.env.NEXT_PUBLIC_PIXEL_ID);
+      window.fbq("track", "PageView");
+    }
   }, []);
 
   return null;
