@@ -60,6 +60,9 @@ const Contact: React.FC = () => {
 
   return (
     <div className="w-full max-w-md mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-4 text-[#8CC63F] text-center">
+        Contact / Place Your Order
+      </h2>
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         <input
           type="text"
