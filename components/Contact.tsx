@@ -45,17 +45,24 @@ const Contact: React.FC = () => {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, "leads"), {
+      console.log("Submitting to Firestore:", formData);
+
+      const docRef = await addDoc(collection(db, "leads"), {
         ...formData,
         timestamp: serverTimestamp(),
       });
+
+      console.log("Firestore write successful. Document ID:", docRef.id);
       toast.success("Submitted successfully!");
-      setTimeout(redirectToWhatsApp, 800);
+
+      // Redirect after confirming Firestore write
+      redirectToWhatsApp();
     } catch (err) {
-      console.error(err);
+      console.error("Error writing to Firestore:", err);
       toast.error("Submission failed. Try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
