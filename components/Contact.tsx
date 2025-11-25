@@ -1,127 +1,51 @@
 "use client";
 
-import React, { useState } from "react";
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { useEffect } from "react";
 
 const Contact: React.FC = () => {
-  const [formData, setFormData] = useState({
-    fullName: "",
-    whatsapp: "",
-    location: "",
-    animal: "cow",
-    quantity: 1,
-  });
-  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    // Helper function to track events
+    const trackEvent = (eventName: string) => {
+      if (typeof window.fbq === "function") {
+        window.fbq("track", eventName);
+      }
+    };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    // Detect WhatsApp links
+    const whatsappLinks = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>(
+        'a[href^="https://wa.me/"], a[href^="https://api.whatsapp.com/"]'
+      )
+    );
 
-  const isMobile = () => {
-    if (typeof window === "undefined") return false;
-    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  };
+    // Attach click listeners
+    whatsappLinks.forEach((link) => {
+      link.addEventListener("click", () => trackEvent("Contact"));
+    });
 
-  const redirectToWhatsApp = () => {
-    const phoneNumber = "2349128264140"; // business number
-    const message = `Hello, my name is ${formData.fullName}. I want to order ${formData.quantity} ${formData.animal}(s).`;
-    const url = isMobile()
-      ? `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
-      : `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-    window.location.href = url;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.fullName || !formData.whatsapp || !formData.location) {
-      toast.error("Please fill all fields");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log("Submitting to Firestore:", formData);
-
-      const docRef = await addDoc(collection(db, "leads"), {
-        ...formData,
-        timestamp: serverTimestamp(),
+    // Cleanup event listeners on unmount
+    return () => {
+      whatsappLinks.forEach((link) => {
+        link.removeEventListener("click", () => trackEvent("Contact"));
       });
-
-      console.log("Firestore write successful. Document ID:", docRef.id);
-      toast.success("Submitted successfully!");
-
-      // Redirect after confirming Firestore write
-      redirectToWhatsApp();
-    } catch (err) {
-      console.error("Error writing to Firestore:", err);
-      toast.error("Submission failed. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+  }, []);
 
   return (
-    <div className="w-full max-w-md mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4 text-[#8CC63F] text-center">
-        Contact / Place Your Order
-      </h2>
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-        <input
-          type="text"
-          name="fullName"
-          placeholder="Full Name"
-          value={formData.fullName}
-          onChange={handleChange}
-          className="border p-3 rounded"
-        />
-        <input
-          type="text"
-          name="whatsapp"
-          placeholder="WhatsApp Number (e.g., 08012345678)"
-          value={formData.whatsapp}
-          onChange={handleChange}
-          className="border p-3 rounded"
-        />
-        <input
-          type="text"
-          name="location"
-          placeholder="Location"
-          value={formData.location}
-          onChange={handleChange}
-          className="border p-3 rounded"
-        />
-        <select
-          name="animal"
-          value={formData.animal}
-          onChange={handleChange}
-          className="border p-3 rounded"
-        >
-          <option value="cow">Cow</option>
-          <option value="goat">Goat</option>
-          <option value="ram">Ram</option>
-        </select>
-        <input
-          type="number"
-          name="quantity"
-          min={1}
-          value={formData.quantity}
-          onChange={handleChange}
-          className="border p-3 rounded"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-green-600 text-white p-3 rounded"
-        >
-          {loading ? "Submitting..." : "Submit & Chat on WhatsApp"}
-        </button>
-      </form>
-    </div>
+    <section className="contact-section p-4 md:p-8">
+      <h2 className="text-2xl font-bold mb-4">Contact Us</h2>
+      <p className="mb-4">
+        Have questions or want to place an order? Click the WhatsApp button below to chat with us directly.
+      </p>
+      <a
+        href="https://wa.me/1234567890"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition"
+      >
+        Chat on WhatsApp
+      </a>
+    </section>
   );
 };
 

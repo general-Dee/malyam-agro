@@ -33,13 +33,6 @@
 // export const storage = getStorage(app);
 // export const auth = getAuth(app);
 
-
-
-
-// frontend/firebase.ts
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-
 // Firebase config from environment variables
 // const firebaseConfig = {
 //   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -49,6 +42,13 @@ import { getFirestore } from "firebase/firestore";
 //   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 //   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 // };
+
+
+// frontend/firebase.ts
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

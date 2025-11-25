@@ -2,20 +2,13 @@
 
 import { useEffect } from "react";
 
-declare global {
-  interface Window {
-    fbq?: (...args: any[]) => void;
-  }
-}
-
 const Pixel: React.FC = () => {
   useEffect(() => {
     if (!window.fbq) {
-      // Initialize Facebook Pixel
       const script = document.createElement("script");
       script.innerHTML = `
         !function(f,b,e,v,n,t,s)
-        {if(f.fbq)return;n=f.fbq=function(){n.callMethod ?
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
         if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
         n.queue=[];t=b.createElement(e);t.async=!0;
@@ -27,7 +20,7 @@ const Pixel: React.FC = () => {
       document.head.appendChild(script);
     }
 
-    window.fbq?.("track", "PageView");
+    window.fbq("track", "PageView");
   }, []);
 
   return null;
