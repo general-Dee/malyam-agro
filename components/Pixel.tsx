@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect } from "react";
 
 const Pixel: React.FC = () => {
@@ -20,7 +19,7 @@ const Pixel: React.FC = () => {
       document.head.appendChild(script);
     }
 
-    window.fbq("track", "PageView");
+    window.fbq?.("track", "PageView");
   }, []);
 
   return null;
