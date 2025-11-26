@@ -1,8 +1,14 @@
+// components/Pixel.tsx
 "use client";
+
 import { useEffect } from "react";
+
+const PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
 
 const Pixel: React.FC = () => {
   useEffect(() => {
+    if (!PIXEL_ID) return;
+
     if (!window.fbq) {
       const script = document.createElement("script");
       script.innerHTML = `
@@ -14,11 +20,12 @@ const Pixel: React.FC = () => {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${process.env.NEXT_PUBLIC_FB_PIXEL_ID}');
+        fbq('init', '${PIXEL_ID}');
       `;
       document.head.appendChild(script);
     }
 
+    // safe call
     window.fbq?.("track", "PageView");
   }, []);
 

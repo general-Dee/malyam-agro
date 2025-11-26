@@ -1,119 +1,94 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { addDoc, collection, getFirestore } from "firebase/firestore";
-import { app } from "../firebase";
+import React, { useState } from "react";
+import { fbq } from "../lib/fbq"; // relative import
+import { db } from "../lib/firebase"; // relative import
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 
-declare global {
-  var fbq: ((...args: any[]) => void) | undefined;
-  interface Window {
-    fbq?: typeof fbq;
-  }
-}
-
-const db = getFirestore(app);
-
-const Contact: React.FC = () => {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [livestock, setLivestock] = useState("");
-  const [message, setMessage] = useState("");
+export default function Contact() {
+  const [form, setForm] = useState({ name: "", phone: "", message: "" });
   const [loading, setLoading] = useState(false);
 
-  // Fire Facebook PageView event
-  useEffect(() => {
-    if (window.fbq) {
-      window.fbq("track", "PageView");
-    }
-  }, []);
+  const isMobile = typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const whatsappBase = isMobile
+    ? "https://api.whatsapp.com/send?phone=2347063596824&text="
+    : "https://web.whatsapp.com/send?phone=2347063596824&text=";
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await addDoc(collection(db, "orders"), {
-        name,
-        phone,
-        livestock,
-        message,
-        createdAt: new Date(),
+      // Save to Firestore
+      await addDoc(collection(db, "leads"), {
+        ...form,
+        createdAt: Timestamp.now(),
       });
 
-      // Fire Facebook Lead event
-      if (window.fbq) {
-        window.fbq("track", "Lead", {
-          name,
-          phone,
-          livestock,
-        });
-      }
+      // Pixel Track Lead
+      fbq("track", "Lead", {
+        name: form.name,
+        phone: form.phone,
+      });
 
-      // WhatsApp redirect
-      const baseUrl = /Mobi|Android/i.test(navigator.userAgent)
-        ? "https://wa.me/2349128264140"
-        : "https://web.whatsapp.com/send?phone=2349128264140";
-
-      const text = `Hi, I would like to order: ${livestock}. Name: ${name}, Phone: ${phone}, Message: ${message}`;
-      window.open(`${baseUrl}?text=${encodeURIComponent(text)}`, "_blank");
-
-      // Reset form
-      setName("");
-      setPhone("");
-      setLivestock("");
-      setMessage("");
+      // Redirect to WhatsApp
+      const encoded = encodeURIComponent(
+        `Hello, my name is ${form.name}. ${form.message}. My phone number is ${form.phone}.`
+      );
+      window.location.href = whatsappBase + encoded;
     } catch (err) {
-      console.error("Error submitting order:", err);
-      alert("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error("Error submitting form", err);
+      alert("Something went wrong. Try again.");
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="max-w-lg mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Place Your Livestock Order</h2>
+    <div className="p-6 bg-white rounded-xl shadow-md max-w-lg mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Contact Us</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
+          name="name"
           type="text"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name"
+          value={form.name}
+          onChange={handleChange}
+          className="w-full border p-3 rounded"
           required
-          className="w-full border p-2 rounded"
         />
+
         <input
+          name="phone"
           type="tel"
-          placeholder="Phone Number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Phone number"
+          value={form.phone}
+          onChange={handleChange}
+          className="w-full border p-3 rounded"
           required
-          className="w-full border p-2 rounded"
         />
-        <input
-          type="text"
-          placeholder="Livestock Order (e.g. 5 goats)"
-          value={livestock}
-          onChange={(e) => setLivestock(e.target.value)}
-          required
-          className="w-full border p-2 rounded"
-        />
+
         <textarea
-          placeholder="Additional Message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="w-full border p-2 rounded"
+          name="message"
+          placeholder="Message"
+          value={form.message}
+          onChange={handleChange}
+          className="w-full border p-3 rounded"
+          rows={4}
         />
+
         <button
           type="submit"
           disabled={loading}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          className="w-full bg-green-600 text-white p-3 rounded font-bold hover:bg-green-700"
         >
-          {loading ? "Submitting..." : "Submit Order"}
+          {loading ? "Processing..." : "Submit & Chat on WhatsApp"}
         </button>
       </form>
     </div>
   );
-};
-
-export default Contact;
+}

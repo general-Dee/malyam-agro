@@ -1,4 +1,5 @@
 // pages/_app.tsx
+import Pixel from "@/components/Pixel";
 import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import Script from "next/script";
@@ -9,7 +10,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
       {/* Meta Pixel */}
-      <Script
+      {/* <Script
         id="fb-pixel"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
@@ -26,7 +27,8 @@ function MyApp({ Component, pageProps }: AppProps) {
           fbq('track', 'PageView');
           `,
         }}
-      />
+       />  */}
+        <Pixel/>
       <noscript>
         <img
           height="1"

@@ -1,5 +1,6 @@
-export const fbqTrack = (event: string, params: Record<string, any> = {}) => {
-  if (typeof window !== "undefined" && (window as any).fbq) {
-    (window as any).fbq("track", event, params);
+// lib/fbq.ts
+export const fbq = (...args: any[]) => {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq(...args);
   }
 };

@@ -1,6 +1,6 @@
 // /pages/api/track.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "../../firebase";
+import { db } from "../../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
