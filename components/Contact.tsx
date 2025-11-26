@@ -1,94 +1,159 @@
 "use client";
 
 import React, { useState } from "react";
-import { fbq } from "../lib/fbq"; // relative import
-import { db } from "../lib/firebase"; // relative import
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { db } from "../lib/firebase"; // Fixed import from exported db
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-export default function Contact() {
-  const [form, setForm] = useState({ name: "", phone: "", message: "" });
+// Detect mobile devices
+const isMobile = (): boolean => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// WhatsApp redirect function
+const openWhatsApp = (phone: string, message: string) => {
+  const encodedMessage = encodeURIComponent(message);
+  const url = isMobile()
+    ? `https://wa.me/${phone}?text=${encodedMessage}`
+    : `https://web.whatsapp.com/send?phone=${phone}&text=${encodedMessage}`;
+  window.open(url, "_blank");
+};
+
+// Form data type
+interface OrderFormData {
+  name: string;
+  phone: string;
+  location: string;
+  livestockType: string;
+  quantity: number;
+}
+
+const Contact: React.FC = () => {
+  const [formData, setFormData] = useState<OrderFormData>({
+    name: "",
+    phone: "",
+    location: "",
+    livestockType: "",
+    quantity: 0,
+  });
+
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const isMobile = typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const whatsappBase = isMobile
-    ? "https://api.whatsapp.com/send?phone=2347063596824&text="
-    : "https://web.whatsapp.com/send?phone=2347063596824&text=";
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // Handle input change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "quantity" ? Number(value) : value,
+    }));
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Save to Firestore
-      await addDoc(collection(db, "leads"), {
-        ...form,
-        createdAt: Timestamp.now(),
+      // Save order to Firestore
+      await addDoc(collection(db, "orders"), {
+        ...formData,
+        createdAt: serverTimestamp(),
       });
 
-      // Pixel Track Lead
-      fbq("track", "Lead", {
-        name: form.name,
-        phone: form.phone,
-      });
+      // Track lead with Meta Pixel
+      if (typeof window !== "undefined" && window.fbq) {
+        window.fbq("track", "Lead", {
+          content_name: formData.livestockType,
+          value: formData.quantity,
+          currency: "NGN",
+        });
+      }
 
-      // Redirect to WhatsApp
-      const encoded = encodeURIComponent(
-        `Hello, my name is ${form.name}. ${form.message}. My phone number is ${form.phone}.`
+      // Open WhatsApp to confirm order
+      openWhatsApp(
+        "09128264140",
+        `Hello, I want to place an order: ${formData.quantity} ${formData.livestockType}. Name: ${formData.name}, Phone: ${formData.phone}, Location: ${formData.location}`
       );
-      window.location.href = whatsappBase + encoded;
-    } catch (err) {
-      console.error("Error submitting form", err);
-      alert("Something went wrong. Try again.");
-    }
 
-    setLoading(false);
+      setSuccess(true);
+      setFormData({
+        name: "",
+        phone: "",
+        location: "",
+        livestockType: "",
+        quantity: 0,
+      });
+    } catch (err) {
+      console.error("Error submitting order:", err);
+      alert("Failed to submit order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-md max-w-lg mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Contact Us</h2>
+    <div className="max-w-md mx-auto p-6 bg-white shadow rounded">
+      <h2 className="text-2xl font-bold mb-4">Place Your Livestock Order</h2>
+      {success && <p className="text-green-600 mb-4">Order submitted successfully!</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
-          name="name"
           type="text"
-          placeholder="Enter your name"
-          value={form.name}
+          name="name"
+          value={formData.name}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          placeholder="Full Name"
           required
+          className="w-full p-2 border rounded"
         />
-
         <input
-          name="phone"
           type="tel"
-          placeholder="Phone number"
-          value={form.phone}
+          name="phone"
+          value={formData.phone}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          placeholder="Phone Number"
           required
+          className="w-full p-2 border rounded"
         />
-
-        <textarea
-          name="message"
-          placeholder="Message"
-          value={form.message}
+        <input
+          type="text"
+          name="location"
+          value={formData.location}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
-          rows={4}
+          placeholder="Location"
+          required
+          className="w-full p-2 border rounded"
         />
-
+        <select
+          name="livestockType"
+          value={formData.livestockType}
+          onChange={handleChange}
+          required
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select Livestock Type</option>
+          <option value="Cattle">Cattle</option>
+          <option value="Goat">Goat</option>
+          <option value="Sheep">Sheep</option>
+          <option value="Chicken">Chicken</option>
+        </select>
+        <input
+          type="number"
+          name="quantity"
+          value={formData.quantity || ""}
+          onChange={handleChange}
+          placeholder="Quantity"
+          min={1}
+          required
+          className="w-full p-2 border rounded"
+        />
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-green-600 text-white p-3 rounded font-bold hover:bg-green-700"
+          className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition"
         >
-          {loading ? "Processing..." : "Submit & Chat on WhatsApp"}
+          {loading ? "Submitting..." : "Place Order"}
         </button>
       </form>
     </div>
   );
-}
+};
+
+export default Contact;
